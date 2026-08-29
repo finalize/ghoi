@@ -99,12 +99,34 @@ CI でも `jdx/mise-action` で同じ `[tools]` を入れるので、**手元と
 Makefile も候補だったが、タブ必須・`.PHONY`・`$$` のエスケープ・ヘルプの自作といった
 「道具と戦う」部分が多く、macOS 同梱の make は 3.81（2006年）で古い。
 
+### コンテナは手元でビルドしない
+
+`gcloud run deploy --source .` は **Dockerfile があればそれを使い、Cloud Build がクラウド側でビルドする**。
+手元に Docker のエンジン（Colima / Docker Desktop など）は要らない。macOS で Docker を動かすには
+Linux VM が要るので、まだ必要と分かっていないうちは常駐させない。
+
+Dockerfile の間違いは Cloud Build のログに出る。デバッグが実際に苦痛になったら、そのとき Colima を入れる。
+
+### Cloud Run の約束事
+
+- **`PORT` 環境変数を読む。** 既定は 8080 だが、渡された値に従う
+- **ホストを絞らずに待つ**（`:8080`）。`127.0.0.1:8080` にするとコンテナの外から届かず、起動に失敗する
+- **SIGTERM を受けたら畳む。** Cloud Run は終了時に SIGTERM を送り、しばらく待ってから止める。
+  無視すると処理中のリクエストが切れる
+- `/healthz` で DB や外部 API を確かめない。**アプリが待ち受けを始めたかどうか**だけを返す
+
 ## 踏みやすいところ
 
 - **`//go:embed` のパスは `..` を使えない。** そのソースファイルのあるディレクトリ基準なので、
   `internal/api/` から `web/dist` は埋め込めない。`web/embed.go`（`package web`）を置く
 - **`//go:embed` はパターンが1つもマッチしないとビルドエラーになる。**
   クローン直後は `web/dist` が無いので `web/dist/.gitkeep` を置いておく
+- **`go run` はシグナルを子プロセスに渡さない。** `mise run dev` に SIGTERM を送っても、
+  終了処理は走らず 143 で殺される。**畳む動きを確かめるときはビルドしたバイナリを直接動かす**
+- **`CGO_ENABLED=0` を忘れると distroless で動かない。** libc に依存したバイナリになるが、
+  distroless には libc が無い
+- **`scratch` ではなく `distroless/static` を使う。** CA 証明書が入っているため。
+  無いと Gemini などへの HTTPS が証明書検証で落ちる
 - **mise を入れただけでは PATH は切り替わらない。** `mise activate` をシェルに入れていない場合、
   素の `go` は Homebrew のものが使われる。`mise.toml` の版で動かしたいときは `mise run` か `mise exec` を通す
 

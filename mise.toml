@@ -11,6 +11,10 @@
 [tools]
 go = "1.27"
 
+[tasks.dev]
+description = "開発用にサーバを起動する（Ctrl-C で終了）"
+run = "go run ./cmd/ghoi"
+
 [tasks.fmt]
 description = "gofmt をかける"
 run = "gofmt -w ."
