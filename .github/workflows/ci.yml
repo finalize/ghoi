@@ -1,0 +1,25 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    # このジョブ名がブランチ保護の必須チェック名になる（既存リポジトリと揃えてある）。
+    name: check & test & build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      # mise.toml の [tools] をそのまま入れる。
+      # 手元と CI で同じバージョンになるので、「手元では通るのに CI で落ちる」が減る。
+      - uses: jdx/mise-action@v2
+
+      - run: mise run check
+
+      - run: mise run build
