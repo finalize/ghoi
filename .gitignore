@@ -1,0 +1,21 @@
+# ビルド成果物
+/ghoi
+/bin/
+*.out
+
+# 秘密
+.env
+.env.*
+!.env.example
+
+# フロント
+node_modules/
+web/dist/
+!web/dist/.gitkeep
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+
+.DS_Store
