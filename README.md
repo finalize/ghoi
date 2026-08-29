@@ -20,13 +20,18 @@
 
 ## 開発
 
+道具とタスクは [mise](https://mise.jdx.dev) で管理している。
+
 ```sh
-make            # 使えるターゲットの一覧
-make check      # CI と同じ検査（gofmt / vet / test）
-make build      # bin/ghoi を作る
+brew install mise   # 初回だけ
+mise install        # mise.toml に書かれた Go などを入れる
+
+mise tasks          # 使えるタスクの一覧
+mise run check      # CI と同じ検査（gofmt / vet / test）
+mise run build      # bin/ghoi を作る
 ```
 
-Go 1.27 以降が要る。
+Go のバージョンは `mise.toml` で固定してあるので、手元と CI で同じものが使われる。
 
 リポジトリの決まりごと・設計判断・踏みやすいところは [CLAUDE.md](CLAUDE.md) にまとめてある。
 

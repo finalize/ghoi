@@ -6,15 +6,20 @@
 
 ## コマンド
 
+道具とタスクは [mise](https://mise.jdx.dev) に集めている（`mise.toml`）。
+
 | 目的 | コマンド |
 |---|---|
-| 使えるターゲット一覧 | `make` |
-| CI と同じ検査 | `make check` |
-| テスト（競合検出つき） | `make test` |
-| ビルド | `make build` → `bin/ghoi` |
-| 整形 | `make fmt` |
+| 道具を揃える | `mise install` |
+| 使えるタスク一覧 | `mise tasks` |
+| CI と同じ検査 | `mise run check` |
+| テスト（競合検出つき） | `mise run test` |
+| ビルド | `mise run build` → `bin/ghoi` |
+| 整形 | `mise run fmt` |
 
-Go と Node を跨ぐので、タスクは Makefile に集める。**`vp` のような言語専用ツールは入れない。**
+`mise run <task>` は `mise r <task>` と短く書ける。シェルに
+`eval "$(mise activate zsh)"` を入れておくと、このディレクトリに入るだけで
+`mise.toml` の Go に切り替わる（入れなくても `mise run` は正しい版を使う）。
 
 ## 構成
 
@@ -27,6 +32,9 @@ deploy/terraform/    GCP の構成
 ```
 
 現在あるのは `cmd/ghoi` だけ。**残りは必要になった PR で作る。空のディレクトリを先に置かない。**
+
+`mise.toml` の `[tools]` も同じ方針で、必要になった PR で足す（`web/` を作る PR で
+node と pnpm、インフラの PR で terraform）。
 
 ## 進め方
 
@@ -82,13 +90,23 @@ PR では `plan` を出すだけ。`apply` は手動。インフラが勝手に�
 pnpm workspace や Turborepo が効くのは、互いに依存する JS パッケージが複数あるとき。
 **Ghoi の JS は `web/` 1つだけ**で、ビルドの本体は Go 側にある。
 
+### タスクは mise に集める。Makefile は使わない
+
+Go と Node を跨ぐので、言語専用のタスクランナー（`package.json` の scripts など）は上位に置けない。
+mise を選んだのは、**タスクだけでなく言語のバージョンも同じファイルで固定できる**から。
+CI でも `jdx/mise-action` で同じ `[tools]` を入れるので、**手元と CI の版が必ず一致する。**
+
+Makefile も候補だったが、タブ必須・`.PHONY`・`$$` のエスケープ・ヘルプの自作といった
+「道具と戦う」部分が多く、macOS 同梱の make は 3.81（2006年）で古い。
+
 ## 踏みやすいところ
 
 - **`//go:embed` のパスは `..` を使えない。** そのソースファイルのあるディレクトリ基準なので、
   `internal/api/` から `web/dist` は埋め込めない。`web/embed.go`（`package web`）を置く
 - **`//go:embed` はパターンが1つもマッチしないとビルドエラーになる。**
   クローン直後は `web/dist` が無いので `web/dist/.gitkeep` を置いておく
-- Makefile はタブが必須。スペースにすると動かない
+- **mise を入れただけでは PATH は切り替わらない。** `mise activate` をシェルに入れていない場合、
+  素の `go` は Homebrew のものが使われる。`mise.toml` の版で動かしたいときは `mise run` か `mise exec` を通す
 
 ## 秘密の扱い
 

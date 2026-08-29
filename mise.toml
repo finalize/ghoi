@@ -1,0 +1,50 @@
+# Ghoi の道具とタスク。
+#
+# mise は「言語のバージョン」と「タスク」を1か所で見る。
+# 道具が増えたら [tools] に足す（web を作る PR で node と pnpm、
+# インフラの PR で terraform が増える予定）。
+#
+#   mise install     [tools] に書いたものを入れる
+#   mise tasks       使えるタスクの一覧
+#   mise run check   CI と同じ検査
+
+[tools]
+go = "1.27"
+
+[tasks.fmt]
+description = "gofmt をかける"
+run = "gofmt -w ."
+
+[tasks.vet]
+description = "go vet"
+run = "go vet ./..."
+
+[tasks.test]
+description = "テスト（競合検出つき）"
+run = "go test -race ./..."
+
+[tasks.gofmt-check]
+description = "整形されていないファイルが無いか見る"
+run = """
+unformatted=$(gofmt -l .)
+if [ -n "$unformatted" ]; then
+  echo "gofmt が必要なファイル:"
+  echo "$unformatted"
+  exit 1
+fi
+"""
+
+[tasks.check]
+description = "CI と同じ検査をまとめて走らせる"
+depends = ["gofmt-check", "vet", "test"]
+
+[tasks.build]
+description = "バイナリを作る（bin/ghoi）"
+run = """
+version=$(git describe --tags --always --dirty 2>/dev/null || echo dev)
+go build -ldflags "-X main.version=$version" -o bin/ghoi ./cmd/ghoi
+"""
+
+[tasks.clean]
+description = "生成物を消す"
+run = "rm -rf bin"

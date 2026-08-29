@@ -16,21 +16,10 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - uses: actions/setup-go@v6
-        with:
-          go-version: stable
+      # mise.toml の [tools] をそのまま入れる。
+      # 手元と CI で同じバージョンになるので、「手元では通るのに CI で落ちる」が減る。
+      - uses: jdx/mise-action@v2
 
-      - name: gofmt
-        run: |
-          unformatted=$(gofmt -l .)
-          if [ -n "$unformatted" ]; then
-            echo "gofmt が必要なファイル:"
-            echo "$unformatted"
-            exit 1
-          fi
+      - run: mise run check
 
-      - run: go vet ./...
-
-      - run: go test -race ./...
-
-      - run: go build ./...
+      - run: mise run build
