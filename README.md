@@ -15,7 +15,7 @@
 | API | Go / Cloud Run |
 | DB | PostgreSQL |
 | 生成 | Gemini（無料枠から） |
-| 構成管理 | Terraform |
+| 構成管理 | Terraform（`asia-northeast1`） |
 | CI/CD | GitHub Actions + Workload Identity Federation |
 
 ## 開発
@@ -27,9 +27,21 @@ brew install mise   # 初回だけ
 mise install        # mise.toml に書かれた Go などを入れる
 
 mise tasks          # 使えるタスクの一覧
-mise run check      # CI と同じ検査（gofmt / vet / test）
+mise run check      # CI と同じ検査（gofmt / vet / test / terraform）
 mise run build      # bin/ghoi を作る
+mise run dev        # サーバを起動する
 ```
+
+インフラを触るには GCP の認証が要る。
+
+```sh
+gcloud auth application-default login
+gcloud auth application-default set-quota-project ghoi-507101
+
+mise run tf-plan    # 何が変わるかを見る
+```
+
+`apply` は手動で行う（CI からは実行しない）。
 
 Go のバージョンは `mise.toml` で固定してあるので、手元と CI で同じものが使われる。
 

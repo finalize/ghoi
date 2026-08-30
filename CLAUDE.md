@@ -16,6 +16,8 @@
 | テスト（競合検出つき） | `mise run test` |
 | ビルド | `mise run build` → `bin/ghoi` |
 | 整形 | `mise run fmt` |
+| Terraform の検査 | `mise run tf-check`（GCP 接続不要） |
+| Terraform の差分 | `mise run tf-plan`（ADC が要る） |
 
 `mise run <task>` は `mise r <task>` と短く書ける。シェルに
 `eval "$(mise activate zsh)"` を入れておくと、このディレクトリに入るだけで
@@ -35,6 +37,51 @@ deploy/terraform/    GCP の構成
 
 `mise.toml` の `[tools]` も同じ方針で、必要になった PR で足す（`web/` を作る PR で
 node と pnpm、インフラの PR で terraform）。
+
+## GCP
+
+| | |
+|---|---|
+| プロジェクト ID | `ghoi-507101`（名前は `ghoi`） |
+| リージョン | `asia-northeast1` |
+| tfstate | `gs://ghoi-507101-tfstate`（バージョニング有効） |
+
+**手元から触るには ADC が要る。**
+
+```sh
+gcloud auth application-default login
+gcloud auth application-default set-quota-project ghoi-507101
+```
+
+`gcloud auth login` とは別物で、保存先も用途も違う（前者は gcloud コマンド自身、
+後者は Terraform などのライブラリ）。確かめるには:
+
+```sh
+gcloud auth application-default print-access-token   # 出力は認証情報なので人に見せない
+```
+
+### state バケットだけは Terraform の外で作る
+
+state を置く場所が無いと `terraform init` ができないため、ここだけ鶏と卵になる。
+作り直すときは一度だけ次を実行する。
+
+```sh
+gcloud storage buckets create gs://ghoi-507101-tfstate \
+  --project=ghoi-507101 --location=asia-northeast1 \
+  --uniform-bucket-level-access --public-access-prevention
+gcloud storage buckets update gs://ghoi-507101-tfstate --versioning
+```
+
+**バージョニングは必須。** state を壊しても前の版に戻せる。
+
+### `apply` は手動
+
+CI は `plan` も `apply` もしない。`mise run tf-check`（整形と構文）だけを見る。
+インフラが push で勝手に変わらないほうが安心だし、`plan` を読む練習にもなる。
+
+```sh
+cd deploy/terraform && terraform apply
+```
 
 ## 進め方
 
@@ -84,6 +131,16 @@ node と pnpm、インフラの PR で terraform）。
 
 PR では `plan` を出すだけ。`apply` は手動。インフラが勝手に変わらないほうが安心だし、
 `plan` を読む練習にもなる。
+
+`.terraform.lock.hcl` は**コミットする**。しないと人や CI ごとに違う provider の版が入る。
+
+### API は使う PR で有効にする
+
+GCP は既定でほとんどの API が無効なので、使う前に明示的に有効化する。
+`apis.tf` に並べるのは**その時点で実際に使うもの**だけにして、先回りして足さない。
+
+`disable_on_destroy = false` にしてある。無効化すると、その API で作った資源が
+壊れることがあるため。
 
 ### JS の workspace ツールは入れない
 
