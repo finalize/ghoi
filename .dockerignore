@@ -1,0 +1,11 @@
+# ビルドの文脈に入れないもの。小さいほど転送も速い。
+.git
+.github
+bin
+node_modules
+web/node_modules
+web/dist
+deploy
+*.md
+.env
+.env.*
