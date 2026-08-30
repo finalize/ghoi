@@ -45,6 +45,8 @@ node と pnpm、インフラの PR で terraform）。
 | プロジェクト ID | `ghoi-507101`（名前は `ghoi`） |
 | リージョン | `asia-northeast1` |
 | tfstate | `gs://ghoi-507101-tfstate`（バージョニング有効） |
+| イメージ | `asia-northeast1-docker.pkg.dev/ghoi-507101/ghoi/ghoi` |
+| Cloud Run | サービス名 `ghoi`、サービスアカウント `ghoi-run@...` |
 
 **手元から触るには ADC が要る。**
 
@@ -73,6 +75,25 @@ gcloud storage buckets update gs://ghoi-507101-tfstate --versioning
 ```
 
 **バージョニングは必須。** state を壊しても前の版に戻せる。
+
+### デプロイの順番
+
+Cloud Run は**存在するイメージしか受け付けない**ので、初回だけ順番の制約がある。
+
+```sh
+mise run gcp-enable-apis   # 初回だけ。API を先に有効化する
+mise run gcp-build         # Cloud Build がイメージを作って push する
+mise run gcp-deploy        # そのイメージで Cloud Run を更新する
+```
+
+2回目以降は `gcp-build` → `gcp-deploy` の2つだけ。
+
+**イメージのタグは git の短い SHA。** `latest` を使わないのは、
+どのコミットが動いているのかが分からなくなるため。
+ロールバックも「前の SHA で deploy し直す」でできる。
+
+**手元に Docker は要らない。** `gcloud builds submit` がソースを送り、
+Cloud Build がクラウド側で Dockerfile を使ってビルドする。
 
 ### `apply` は手動
 
@@ -133,6 +154,17 @@ PR では `plan` を出すだけ。`apply` は手動。インフラが勝手に�
 `plan` を読む練習にもなる。
 
 `.terraform.lock.hcl` は**コミットする**。しないと人や CI ごとに違う provider の版が入る。
+
+### Cloud Run のサービスアカウントは最小から
+
+既定のサービスアカウントは権限が広すぎるので、`ghoi-run` を専用に作ってある。
+**いまは権限をひとつも付けていない。** Gemini を叩く PR、Cloud SQL に繋ぐ PR で、
+必要な role をその都度足す。
+
+### 公開範囲
+
+Cloud Run は既定で非公開。`allUsers` に `roles/run.invoker` を付けて公開している。
+**いま公開されているのは `/healthz` だけ。** 語を引く API を足す前に認証（PR 14-15）を入れること。
 
 ### API は使う PR で有効にする
 

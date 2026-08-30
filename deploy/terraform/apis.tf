@@ -10,6 +10,10 @@ locals {
     "artifactregistry.googleapis.com",
     # 他の API を有効化したり、プロジェクトの情報を読むために要る
     "cloudresourcemanager.googleapis.com",
+    # Cloud Run。アプリを動かす場所
+    "run.googleapis.com",
+    # Cloud Build。手元に Docker が無くてもイメージを作れる
+    "cloudbuild.googleapis.com",
   ]
 }
 

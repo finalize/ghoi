@@ -14,6 +14,12 @@ go = "1.27"
 # 上げるときは terraform init -upgrade を通し、state の変換を確認してから。
 terraform = "1.16.0"
 
+# GCP の宛先。秘密ではないので直書きする。
+# タスクからも、activate 済みのシェルからも使える。
+[env]
+GHOI_PROJECT = "ghoi-507101"
+GHOI_REGION = "asia-northeast1"
+
 [tasks.dev]
 description = "開発用にサーバを起動する（Ctrl-C で終了）"
 run = "go run ./cmd/ghoi"
@@ -39,6 +45,32 @@ if [ -n "$unformatted" ]; then
   echo "$unformatted"
   exit 1
 fi
+"""
+
+[tasks.gcp-enable-apis]
+description = "API だけ先に有効にする（初回、イメージがまだ無い状態で使う）"
+run = """
+cd deploy/terraform
+# Cloud Run は存在するイメージしか受け付けないので、初回は API だけ先に作る。
+# image_tag は使われないが、変数が必須なので仮の値を渡す。
+terraform apply -target=google_project_service.enabled -var=image_tag=bootstrap
+"""
+
+[tasks.gcp-build]
+description = "Cloud Build でイメージを作り Artifact Registry に push する（手元に Docker は不要）"
+run = """
+tag=$(git rev-parse --short HEAD)
+image="$GHOI_REGION-docker.pkg.dev/$GHOI_PROJECT/ghoi/ghoi:$tag"
+gcloud builds submit --project="$GHOI_PROJECT" --tag "$image" .
+echo "push しました: $image"
+"""
+
+[tasks.gcp-deploy]
+description = "いまの HEAD のイメージで Cloud Run を更新する"
+run = """
+cd deploy/terraform
+tag=$(git rev-parse --short HEAD)
+terraform apply -var="image_tag=$tag"
 """
 
 [tasks.tf-fmt]
