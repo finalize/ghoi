@@ -12,7 +12,7 @@
 | | |
 |---|---|
 | フロント | Vite + TanStack（未着手） |
-| API | Go / Cloud Run |
+| API | Go / Cloud Run（`asia-northeast1`） |
 | DB | PostgreSQL |
 | 生成 | Gemini（無料枠から） |
 | 構成管理 | Terraform（`asia-northeast1`） |
@@ -42,6 +42,16 @@ mise run tf-plan    # 何が変わるかを見る
 ```
 
 `apply` は手動で行う（CI からは実行しない）。
+
+### デプロイ
+
+```sh
+mise run gcp-build     # Cloud Build でイメージを作る（手元に Docker は不要）
+mise run gcp-deploy    # そのイメージで Cloud Run を更新する
+```
+
+初回だけ、先に `mise run gcp-enable-apis` が要る（Cloud Run は存在するイメージしか
+受け付けないため、API を先に有効化する）。
 
 Go のバージョンは `mise.toml` で固定してあるので、手元と CI で同じものが使われる。
 

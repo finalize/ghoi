@@ -1,0 +1,12 @@
+# Cloud Build にアップロードしないもの。
+# これを置かないと gcloud が .gitignore から自動生成してリポジトリに書き込む。
+.git
+.github
+bin
+node_modules
+web/node_modules
+web/dist
+deploy
+*.md
+.env
+.env.*
