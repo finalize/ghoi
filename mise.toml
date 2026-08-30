@@ -10,6 +10,9 @@
 
 [tools]
 go = "1.27"
+# state ファイルの互換性に効くので、版は固定する。
+# 上げるときは terraform init -upgrade を通し、state の変換を確認してから。
+terraform = "1.16.0"
 
 [tasks.dev]
 description = "開発用にサーバを起動する（Ctrl-C で終了）"
@@ -38,9 +41,31 @@ if [ -n "$unformatted" ]; then
 fi
 """
 
+[tasks.tf-fmt]
+description = "Terraform を整形する"
+run = "terraform -chdir=deploy/terraform fmt -recursive"
+
+[tasks.tf-check]
+description = "Terraform の整形と構文を確かめる（GCP への接続は不要）"
+run = """
+cd deploy/terraform
+terraform fmt -check -recursive
+# 未初期化なら、バックエンド抜きで初期化する（認証情報が無くても通る）
+[ -d .terraform ] || terraform init -backend=false -input=false > /dev/null
+terraform validate
+"""
+
+[tasks.tf-plan]
+description = "GCP に何が起きるかを見る（ADC が要る）"
+run = """
+cd deploy/terraform
+terraform init -input=false > /dev/null
+terraform plan
+"""
+
 [tasks.check]
 description = "CI と同じ検査をまとめて走らせる"
-depends = ["gofmt-check", "vet", "test"]
+depends = ["gofmt-check", "vet", "test", "tf-check"]
 
 [tasks.build]
 description = "バイナリを作る（bin/ghoi）"
